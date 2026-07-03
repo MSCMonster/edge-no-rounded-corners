@@ -1,0 +1,5 @@
+# 检测工具生成的截图
+tools/corner_*.png
+corner_*.png
+
+__pycache__/
