@@ -42,14 +42,14 @@ Microsoft Edge が強制的に有効化する Web ページ角丸スタイルを
 以管理员身份打开 PowerShell：
 
 ```powershell
-irm https://raw.githubusercontent.com/MSCMonster/edge-no-rounded-corners/main/edge_no_rounded_corner.ps1 -OutFile "$env:TEMP\edge_no_rounded_corner.ps1"
+irm https://github.com/MSCMonster/edge-no-rounded-corners/releases/latest/download/edge_no_rounded_corner.ps1 -OutFile "$env:TEMP\edge_no_rounded_corner.ps1"
 powershell -ExecutionPolicy Bypass -File "$env:TEMP\edge_no_rounded_corner.ps1" -RestartEdge
 ```
 
 - `-RestartEdge`：应用后立即优雅重启 Edge（先正常关闭保存会话，重启时恢复标签页）；不加则下次启动生效
 - `-Undo`：撤销全部修改
 
-> **备用方式**：部分网络环境下 `raw.githubusercontent.com` 无法解析（提示"未能解析此远程名称"），这不是设备问题。此时改用 github.com 的 ZIP 下载通道：
+> **备用方式**：部分网络环境下 `raw.githubusercontent.com` / `objects.githubusercontent.com` 无法解析（提示"未能解析此远程名称"，release 直链下载最终也会重定向到后者），这不是设备问题。此时改用 github.com 的 ZIP 下载通道：
 >
 > ```powershell
 > irm https://github.com/MSCMonster/edge-no-rounded-corners/archive/refs/heads/main.zip -OutFile "$env:TEMP\enrc.zip"
@@ -108,7 +108,7 @@ Edge 149 前後から、Microsoft は**サーバー側の実験配信**（Contro
 管理者権限で PowerShell を開き、次を実行します。
 
 ```powershell
-irm https://raw.githubusercontent.com/MSCMonster/edge-no-rounded-corners/main/edge_no_rounded_corner.ps1 -OutFile "$env:TEMP\edge_no_rounded_corner.ps1"
+irm https://github.com/MSCMonster/edge-no-rounded-corners/releases/latest/download/edge_no_rounded_corner.ps1 -OutFile "$env:TEMP\edge_no_rounded_corner.ps1"
 powershell -ExecutionPolicy Bypass -File "$env:TEMP\edge_no_rounded_corner.ps1" -RestartEdge
 ```
 
@@ -164,7 +164,7 @@ In practice, the only reliable lever is the **command-line feature switches**, w
 Open an elevated PowerShell and run:
 
 ```powershell
-irm https://raw.githubusercontent.com/MSCMonster/edge-no-rounded-corners/main/edge_no_rounded_corner.ps1 -OutFile "$env:TEMP\edge_no_rounded_corner.ps1"
+irm https://github.com/MSCMonster/edge-no-rounded-corners/releases/latest/download/edge_no_rounded_corner.ps1 -OutFile "$env:TEMP\edge_no_rounded_corner.ps1"
 powershell -ExecutionPolicy Bypass -File "$env:TEMP\edge_no_rounded_corner.ps1" -RestartEdge
 ```
 
