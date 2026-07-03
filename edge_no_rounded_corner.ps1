@@ -1,4 +1,4 @@
-# 一键去除 Microsoft Edge 网页内容区的强制圆角样式
+﻿# 一键去除 Microsoft Edge 网页内容区的强制圆角样式
 # One-click removal of Microsoft Edge's forced rounded corners on web content
 #
 # 原理: 以下命令行特性开关的优先级高于微软服务端实验推送, 脚本将其注入 Edge 的所有启动入口
@@ -10,7 +10,42 @@
 #   .\edge_no_rounded_corner.ps1                # 应用 apply
 #   .\edge_no_rounded_corner.ps1 -RestartEdge   # 应用并立即重启 Edge 生效 apply & restart
 #   .\edge_no_rounded_corner.ps1 -Undo          # 撤销全部修改 revert
+#
+# 注意: 本文件必须以 UTF-8 with BOM 编码保存, 否则 Windows PowerShell 5.1 下中文会乱码
 param([switch]$Undo, [switch]$RestartEdge)
+
+# 按系统界面语言选择输出文本, 兜底英语
+$lang = switch -Regex ([System.Globalization.CultureInfo]::CurrentUICulture.Name) {
+    '^zh' { 'zh' }
+    '^ja' { 'ja' }
+    default { 'en' }
+}
+$T = (@{
+    zh = @{
+        Patched = '已修改'; Reverted = '已撤销'; AlreadyOk = '无需修改'; Failed = '修改失败'
+        NeedAdmin = '(需要管理员权限)'; MaybePerm = '(权限不足?)'
+        Startup = '自启动项'; Protocol = '协议命令'
+        Restarted = 'Edge 已重启并恢复会话'
+        ExeNotFound = '未找到 msedge.exe, 请手动重启 Edge'
+        Done = '完成。'
+    }
+    ja = @{
+        Patched = '変更しました'; Reverted = '元に戻しました'; AlreadyOk = '変更不要'; Failed = '変更に失敗しました'
+        NeedAdmin = '（管理者権限が必要）'; MaybePerm = '（権限不足の可能性）'
+        Startup = '自動起動エントリ'; Protocol = 'プロトコルコマンド'
+        Restarted = 'Edge を再起動し、セッションを復元しました'
+        ExeNotFound = 'msedge.exe が見つかりません。Edge を手動で再起動してください'
+        Done = '完了。'
+    }
+    en = @{
+        Patched = 'Patched'; Reverted = 'Reverted'; AlreadyOk = 'Already OK'; Failed = 'Failed'
+        NeedAdmin = '(administrator rights required)'; MaybePerm = '(insufficient permissions?)'
+        Startup = 'startup entry'; Protocol = 'protocol command'
+        Restarted = 'Edge restarted with session restored'
+        ExeNotFound = 'msedge.exe not found, please restart Edge manually'
+        Done = 'Done.'
+    }
+})[$lang]
 
 $flags  = '--enable-features=msForceNoRoundedCornerAndMargin --disable-features=msVisualRejuvRounding'
 $marker = 'msForceNoRoundedCornerAndMargin'
@@ -40,11 +75,11 @@ foreach ($d in $dirs) {
         $cur = $lnk.Arguments
         try {
             if ($Undo) {
-                if ($cur -like "*$marker*") { $lnk.Arguments = $cur.Replace($flags, '').Trim(); $lnk.Save(); "已撤销 reverted: $($f.FullName)" }
+                if ($cur -like "*$marker*") { $lnk.Arguments = $cur.Replace($flags, '').Trim(); $lnk.Save(); "$($T.Reverted): $($f.FullName)" }
             } elseif ($cur -notlike "*$marker*") {
-                $lnk.Arguments = "$flags $cur".Trim(); $lnk.Save(); "已修改 patched: $($f.FullName)"
-            } else { "无需修改 already ok: $($f.FullName)" }
-        } catch { "修改失败 failed (是否缺少权限?): $($f.FullName)" }
+                $lnk.Arguments = "$flags $cur".Trim(); $lnk.Save(); "$($T.Patched): $($f.FullName)"
+            } else { "$($T.AlreadyOk): $($f.FullName)" }
+        } catch { "$($T.Failed) $($T.MaybePerm): $($f.FullName)" }
     }
 }
 
@@ -54,9 +89,11 @@ foreach ($rk in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Run', 'HKLM:\
     foreach ($name in ((Get-Item $rk).GetValueNames() | Where-Object { $_ -like 'MicrosoftEdgeAutoLaunch*' })) {
         $v = (Get-ItemProperty $rk -Name $name).$name
         $need = if ($Undo) { $v -like "*$marker*" } else { $v -notlike "*$marker*" }
-        if (-not $need) { "无需修改 already ok: 自启动项 $name"; continue }
-        try { Set-ItemProperty $rk -Name $name -Value (Edit-Command $v) -ErrorAction Stop; "已处理 done: 自启动项 startup entry $name" }
-        catch { "修改失败 failed: 自启动项 $name - $($_.Exception.Message)" }
+        if (-not $need) { "$($T.AlreadyOk): $($T.Startup) $name"; continue }
+        try {
+            Set-ItemProperty $rk -Name $name -Value (Edit-Command $v) -ErrorAction Stop
+            "$(if ($Undo) { $T.Reverted } else { $T.Patched }): $($T.Startup) $name"
+        } catch { "$($T.Failed): $($T.Startup) $name - $($_.Exception.Message)" }
     }
 }
 
@@ -66,9 +103,11 @@ foreach ($cls in @('MSEdgeHTM', 'microsoft-edge')) {
     if (-not (Test-Path $key)) { continue }
     $v = (Get-ItemProperty $key).'(default)'
     $need = if ($Undo) { $v -like "*$marker*" } else { $v -notlike "*$marker*" }
-    if (-not $need) { "无需修改 already ok: 协议命令 $cls"; continue }
-    try { Set-ItemProperty $key -Name '(default)' -Value (Edit-Command $v) -ErrorAction Stop; "已处理 done: 协议命令 protocol $cls" }
-    catch { "修改失败 failed (需要管理员权限 admin required): 协议命令 $cls" }
+    if (-not $need) { "$($T.AlreadyOk): $($T.Protocol) $cls"; continue }
+    try {
+        Set-ItemProperty $key -Name '(default)' -Value (Edit-Command $v) -ErrorAction Stop
+        "$(if ($Undo) { $T.Reverted } else { $T.Patched }): $($T.Protocol) $cls"
+    } catch { "$($T.Failed) $($T.NeedAdmin): $($T.Protocol) $cls" }
 }
 
 # --- 4. 可选: 立即重启 Edge 使参数生效 ---
@@ -88,8 +127,8 @@ if ($RestartEdge) {
     if ($edgeExe -and (Test-Path $edgeExe)) {
         $restartArgs = if ($Undo) { '--restore-last-session' } else { "$flags --restore-last-session" }
         Start-Process $edgeExe -ArgumentList $restartArgs
-        "Edge 已重启并恢复会话 restarted with session restored"
-    } else { "未找到 msedge.exe, 请手动重启 Edge / msedge.exe not found, restart Edge manually" }
+        $T.Restarted
+    } else { $T.ExeNotFound }
 }
 
-"完成 done."
+$T.Done
