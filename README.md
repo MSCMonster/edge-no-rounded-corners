@@ -49,6 +49,16 @@ powershell -ExecutionPolicy Bypass -File "$env:TEMP\edge_no_rounded_corner.ps1" 
 - `-RestartEdge`：应用后立即优雅重启 Edge（先正常关闭保存会话，重启时恢复标签页）；不加则下次启动生效
 - `-Undo`：撤销全部修改
 
+> **备用方式**：部分网络环境下 `raw.githubusercontent.com` 无法解析（提示"未能解析此远程名称"），这不是设备问题。此时改用 github.com 的 ZIP 下载通道：
+>
+> ```powershell
+> irm https://github.com/MSCMonster/edge-no-rounded-corners/archive/refs/heads/main.zip -OutFile "$env:TEMP\enrc.zip"
+> Expand-Archive "$env:TEMP\enrc.zip" "$env:TEMP\enrc" -Force
+> powershell -ExecutionPolicy Bypass -File "$env:TEMP\enrc\edge-no-rounded-corners-main\edge_no_rounded_corner.ps1" -RestartEdge
+> ```
+>
+> 装有 git 的设备也可以直接 `git clone https://github.com/MSCMonster/edge-no-rounded-corners.git` 后运行脚本。
+
 ### 检测工具（可选）
 
 `tools/edge_corner_check.py` 可以自动截取 Edge 客户区左下角并通过"等宽边距 + 对角线圆弧签名"判定当前是否处于圆角状态（退出码 0 = 无圆角，1 = 有圆角，2 = 无法判定），适合脚本化验证：
